@@ -62,6 +62,8 @@ function $initHighlight(block, cls) {
 - [ ] Comet Haley
     </vue-markdown>
 
+    <vue-markdown :video="video">@[youtube](lJIrF4YjHfQ)</vue-markdown>
+
   </div>
   <script>
     Vue.use(VueMarkdown);
@@ -73,7 +75,8 @@ function $initHighlight(block, cls) {
           anchorAttrs: {
             target: '_blank',
             rel: 'noopener noreferrer nofollow'
-          }
+          },
+          video: { containerClassName: "video-embed", youtube: { width: 600, height: 600} },
         }
       },
       mounted () {
