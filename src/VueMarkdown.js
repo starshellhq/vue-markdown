@@ -10,7 +10,7 @@ import mark from 'markdown-it-mark'
 import toc from 'markdown-it-toc-and-anchor'
 import katex from 'markdown-it-katex'
 import tasklists from 'markdown-it-task-lists'
-import video from 'markdown-it-block-embed'
+import video from 'markdown-it-video'
 
 export default {
   md: new markdownIt(),
@@ -153,12 +153,12 @@ export default {
       .use(katex, { "throwOnError": false, "errorColor": " #cc0000" })
       .use(tasklists, { enabled: this.taskLists })
 
-    if (this.video) {
-      this.md.use(video, this.video)
-    }
-
     if (this.emoji) {
       this.md.use(emoji)
+    }
+
+    if (this.video) {
+      this.md.use(video, this.video)
     }
 
     this.md.set({

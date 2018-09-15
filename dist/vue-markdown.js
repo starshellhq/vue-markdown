@@ -1,5 +1,5 @@
 /**
- * vue-markdown v2.2.4
+ * vue-markdown v2.0.0
  * https://github.com/miaolz123/vue-markdown
  * MIT License
  */
@@ -143,9 +143,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _markdownItTaskLists2 = _interopRequireDefault(_markdownItTaskLists);
 
-	var _markdownItBlockEmbed = __webpack_require__(178);
+	var _markdownItVideo = __webpack_require__(178);
 
-	var _markdownItBlockEmbed2 = _interopRequireDefault(_markdownItBlockEmbed);
+	var _markdownItVideo2 = _interopRequireDefault(_markdownItVideo);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -292,12 +292,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    this.md = new _markdownIt2.default().use(_markdownItSub2.default).use(_markdownItSup2.default).use(_markdownItFootnote2.default).use(_markdownItDeflist2.default).use(_markdownItAbbr2.default).use(_markdownItIns2.default).use(_markdownItMark2.default).use(_markdownItKatex2.default, { "throwOnError": false, "errorColor": " #cc0000" }).use(_markdownItTaskLists2.default, { enabled: this.taskLists });
 
-	    if (this.video) {
-	      this.md.use(_markdownItBlockEmbed2.default, this.video);
-	    }
-
 	    if (this.emoji) {
 	      this.md.use(_markdownItEmoji2.default);
+	    }
+
+	    if (this.video) {
+	      this.md.use(_markdownItVideo2.default, this.video);
 	    }
 
 	    this.md.set({
@@ -22584,457 +22584,195 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ }),
 /* 178 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
-
-	"use strict";
-
-	const PluginEnvironment = __webpack_require__(179);
-	const renderer = __webpack_require__(185);
-	const tokenizer = __webpack_require__(186);
-
-
-	function setup(md, options) {
-	  let env = new PluginEnvironment(md, options);
-
-	  md.block.ruler.before("fence", "video", tokenizer.bind(env), {
-	    alt: [ "paragraph", "reference", "blockquote", "list" ]
-	  });
-	  md.renderer.rules["video"] = renderer.bind(env);
-	}
-
-
-	module.exports = setup;
-
-
-/***/ }),
-/* 179 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
-
-	"use strict";
-
-	const YouTubeService = __webpack_require__(180);
-	const VimeoService = __webpack_require__(182);
-	const VineService = __webpack_require__(183);
-	const PreziService = __webpack_require__(184);
-
-
-	class PluginEnvironment {
-
-	  constructor(md, options) {
-	    this.md = md;
-	    this.options = Object.assign(this.getDefaultOptions(), options);
-
-	    this._initServices();
-	  }
-
-	  _initServices() {
-	    let defaultServiceBindings = {
-	      "youtube": YouTubeService,
-	      "vimeo": VimeoService,
-	      "vine": VineService,
-	      "prezi": PreziService
-	    };
-
-	    let serviceBindings = Object.assign({}, defaultServiceBindings, this.options.services);
-	    let services = {};
-	    for (let serviceName of Object.keys(serviceBindings)) {
-	      let _serviceClass = serviceBindings[serviceName];
-	      services[serviceName] = new _serviceClass(serviceName, this.options[serviceName], this);
-	    }
-
-	    this.services = services;
-	  }
-
-	  getDefaultOptions() {
-	    return {
-	      containerClassName: "block-embed",
-	      serviceClassPrefix: "block-embed-service-",
-	      outputPlayerSize: true,
-	      allowFullScreen: true,
-	      filterUrl: null
-	    };
-	  }
-
-	}
-
-
-	module.exports = PluginEnvironment;
-
-
-/***/ }),
-/* 180 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
-
-	"use strict";
-
-	const VideoServiceBase = __webpack_require__(181);
-
-
-	class YouTubeService extends VideoServiceBase {
-
-	  getDefaultOptions() {
-	    return { width: 640, height: 390 };
-	  }
-
-	  extractVideoID(reference) {
-	    let match = reference.match(/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&\?]*).*/);
-	    return match && match[7].length === 11 ? match[7] : reference;
-	  }
-
-	  getVideoUrl(videoID) {
-	    let escapedVideoID = this.env.md.utils.escapeHtml(videoID);
-	    return `//www.youtube.com/embed/${escapedVideoID}`;
-	  }
-
-	}
-
-
-	module.exports = YouTubeService;
-
-
-/***/ }),
-/* 181 */
 /***/ (function(module, exports) {
 
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
+	// Process @[youtube](youtubeVideoID)
+	// Process @[vimeo](vimeoVideoID)
+	// Process @[vine](vineVideoID)
+	// Process @[prezi](preziID)
+	// Process @[osf](guid)
 
-	"use strict";
+	const ytRegex = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+	function youtubeParser(url) {
+	  const match = url.match(ytRegex);
+	  return match && match[7].length === 11 ? match[7] : url;
+	}
 
+	/* eslint-disable max-len */
+	const vimeoRegex = /https?:\/\/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/([^/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/;
+	/* eslint-enable max-len */
+	function vimeoParser(url) {
+	  const match = url.match(vimeoRegex);
+	  return match && typeof match[3] === 'string' ? match[3] : url;
+	}
 
-	function defaultUrlFilter(url, _videoID, _serviceName, _options) {
-	  return url;
+	const vineRegex = /^http(?:s?):\/\/(?:www\.)?vine\.co\/v\/([a-zA-Z0-9]{1,13}).*/;
+	function vineParser(url) {
+	  const match = url.match(vineRegex);
+	  return match && match[1].length === 11 ? match[1] : url;
+	}
+
+	const preziRegex = /^https:\/\/prezi.com\/(.[^/]+)/;
+	function preziParser(url) {
+	  const match = url.match(preziRegex);
+	  return match ? match[1] : url;
+	}
+
+	// TODO: Write regex for staging and local servers.
+	const mfrRegex = /^http(?:s?):\/\/(?:www\.)?mfr\.osf\.io\/render\?url=http(?:s?):\/\/osf\.io\/([a-zA-Z0-9]{1,5})\/\?action=download/;
+	function mfrParser(url) {
+	  const match = url.match(mfrRegex);
+	  return match ? match[1] : url;
 	}
 
 
-	class VideoServiceBase {
+	const EMBED_REGEX = /@\[([a-zA-Z].+)]\([\s]*(.*?)[\s]*[)]/im;
 
-	  constructor(name, options, env) {
-	    this.name = name;
-	    this.options = Object.assign(this.getDefaultOptions(), options);
-	    this.env = env;
-	  }
+	function videoEmbed(md, options) {
+	  function videoReturn(state, silent) {
+	    var serviceEnd;
+	    var serviceStart;
+	    var token;
+	    var videoID;
+	    var theState = state;
+	    const oldPos = state.pos;
 
-	  getDefaultOptions() {
-	    return {};
-	  }
-
-	  extractVideoID(reference) {
-	    return reference;
-	  }
-
-	  getVideoUrl(_videoID) {
-	    throw new Error("not implemented");
-	  }
-
-	  getFilteredVideoUrl(videoID) {
-	    let filterUrlDelegate = typeof this.env.options.filterUrl === "function"
-	        ? this.env.options.filterUrl
-	        : defaultUrlFilter;
-	    let videoUrl = this.getVideoUrl(videoID);
-	    return filterUrlDelegate(videoUrl, this.name, videoID, this.env.options);
-	  }
-
-	  getEmbedCode(videoID) {
-	    let containerClassNames = [];
-	    if (this.env.options.containerClassName) {
-	      containerClassNames.push(this.env.options.containerClassName);
+	    if (state.src.charCodeAt(oldPos) !== 0x40/* @ */ ||
+	        state.src.charCodeAt(oldPos + 1) !== 0x5B/* [ */) {
+	      return false;
 	    }
 
-	    let escapedServiceName = this.env.md.utils.escapeHtml(this.name);
-	    containerClassNames.push(this.env.options.serviceClassPrefix + escapedServiceName);
+	    const match = EMBED_REGEX.exec(state.src.slice(state.pos, state.src.length));
 
-	    let iframeAttributeList = [];
-	    iframeAttributeList.push([ "type", "text/html" ]);
-	    iframeAttributeList.push([ "src", this.getFilteredVideoUrl(videoID) ]);
-	    iframeAttributeList.push([ "frameborder", 0 ]);
+	    if (!match || match.length < 3) {
+	      return false;
+	    }
 
-	    if (this.env.options.outputPlayerSize === true) {
-	      if (this.options.width !== undefined && this.options.width !== null) {
-	        iframeAttributeList.push([ "width", this.options.width ]);
+	    const service = match[1];
+	    videoID = match[2];
+	    const serviceLower = service.toLowerCase();
+
+	    if (serviceLower === 'youtube') {
+	      videoID = youtubeParser(videoID);
+	    } else if (serviceLower === 'vimeo') {
+	      videoID = vimeoParser(videoID);
+	    } else if (serviceLower === 'vine') {
+	      videoID = vineParser(videoID);
+	    } else if (serviceLower === 'prezi') {
+	      videoID = preziParser(videoID);
+	    } else if (serviceLower === 'osf') {
+	      videoID = mfrParser(videoID);
+	    } else if (!options[serviceLower]) {
+	      return false;
+	    }
+
+	    // If the videoID field is empty, regex currently make it the close parenthesis.
+	    if (videoID === ')') {
+	      videoID = '';
+	    }
+
+	    serviceStart = oldPos + 2;
+	    serviceEnd = md.helpers.parseLinkLabel(state, oldPos + 1, false);
+
+	    //
+	    // We found the end of the link, and know for a fact it's a valid link;
+	    // so all that's left to do is to call tokenizer.
+	    //
+	    if (!silent) {
+	      theState.pos = serviceStart;
+	      theState.service = theState.src.slice(serviceStart, serviceEnd);
+	      const newState = new theState.md.inline.State(service, theState.md, theState.env, []);
+	      newState.md.inline.tokenize(newState);
+
+	      token = theState.push('video', '');
+	      token.videoID = videoID;
+	      token.service = service;
+	      token.level = theState.level;
+	    }
+
+	    theState.pos += theState.src.indexOf(')', theState.pos);
+	    return true;
+	  }
+
+	  return videoReturn;
+	}
+
+	function videoUrl(service, videoID, options) {
+	  switch (service) {
+	    case 'youtube':
+	      return 'https://www.youtube.com/embed/' + videoID;
+	    case 'vimeo':
+	      return 'https://player.vimeo.com/video/' + videoID;
+	    case 'vine':
+	      return 'https://vine.co/v/' + videoID + '/embed/' + options.vine.embed;
+	    case 'prezi':
+	      return 'https://prezi.com/embed/' + videoID +
+	        '/?bgcolor=ffffff&amp;lock_to_path=0&amp;autoplay=0&amp;autohide_ctrls=0&amp;' +
+	        'landing_data=bHVZZmNaNDBIWnNjdEVENDRhZDFNZGNIUE43MHdLNWpsdFJLb2ZHanI5N1lQVHkxSHFxazZ0UUNCRHloSXZROHh3PT0&amp;' +
+	        'landing_sign=1kD6c0N6aYpMUS0wxnQjxzSqZlEB8qNFdxtdjYhwSuI';
+	    case 'osf':
+	      return 'https://mfr.osf.io/render?url=https://osf.io/' + videoID + '/?action=download';
+	    default:
+	      return service;
+	  }
+	}
+
+	function tokenizeVideo(md, options) {
+	  function tokenizeReturn(tokens, idx) {
+	    const videoID = md.utils.escapeHtml(tokens[idx].videoID);
+	    const service = md.utils.escapeHtml(tokens[idx].service).toLowerCase();
+	    var checkUrl = /http(?:s?):\/\/(?:www\.)?[a-zA-Z0-9-:.]{1,}\/render(?:\/)?[a-zA-Z0-9.&;?=:%]{1,}url=http(?:s?):\/\/[a-zA-Z0-9 -:.]{1,}\/[a-zA-Z0-9]{1,5}\/\?[a-zA-Z0-9.=:%]{1,}/;
+	    var num;
+
+	    if (service === 'osf' && videoID) {
+	      num = Math.random() * 0x10000;
+
+	      if (videoID.match(checkUrl)) {
+	        return '<div id="' + num + '" class="mfr mfr-file"></div><script>' +
+	          '$(document).ready(function () {new mfr.Render("' + num + '", "' + videoID + '");' +
+	          '    }); </script>';
 	      }
-	      if (this.options.height !== undefined && this.options.height !== null) {
-	        iframeAttributeList.push([ "height", this.options.height ]);
+	      return '<div id="' + num + '" class="mfr mfr-file"></div><script>' +
+	        '$(document).ready(function () {new mfr.Render("' + num + '", "https://mfr.osf.io/' +
+	        'render?url=https://osf.io/' + videoID + '/?action=download%26mode=render");' +
+	        '    }); </script>';
+	    }
+
+	    return videoID === '' ? '' :
+	      '<div class="embed-responsive embed-responsive-16by9"><iframe class="embed-responsive-item ' +
+	      service + '-player" type="text/html" width="' + (options[service].width) +
+	      '" height="' + (options[service].height) +
+	      '" src="' + options.url(service, videoID, options) +
+	      '" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe></div>';
+	  }
+
+	  return tokenizeReturn;
+	}
+
+	const defaults = {
+	  url: videoUrl,
+	  youtube: { width: 640, height: 390 },
+	  vimeo: { width: 500, height: 281 },
+	  vine: { width: 600, height: 600, embed: 'simple' },
+	  prezi: { width: 550, height: 400 },
+	  osf: { width: '100%', height: '100%' },
+	};
+
+	module.exports = function videoPlugin(md, options) {
+	  var theOptions = options;
+	  var theMd = md;
+	  if (theOptions) {
+	    Object.keys(defaults).forEach(function checkForKeys(key) {
+	      if (typeof theOptions[key] === 'undefined') {
+	        theOptions[key] = defaults[key];
 	      }
-	    }
-
-	    if (this.env.options.allowFullScreen === true) {
-	      iframeAttributeList.push([ "webkitallowfullscreen" ]);
-	      iframeAttributeList.push([ "mozallowfullscreen" ]);
-	      iframeAttributeList.push([ "allowfullscreen" ]);
-	    }
-
-	    let iframeAttributes = iframeAttributeList
-	      .map(pair =>
-	        pair[1] !== undefined
-	            ? `${pair[0]}="${pair[1]}"`
-	            : pair[0]
-	      )
-	      .join(" ");
-
-	    return `<div class="${containerClassNames.join(" ")}">`
-	           + `<iframe ${iframeAttributes}></iframe>`
-	         + `</div>\n`;
+	    });
+	  } else {
+	    theOptions = defaults;
 	  }
-
-	}
-
-
-	module.exports = VideoServiceBase;
-
-
-/***/ }),
-/* 182 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
-
-	"use strict";
-
-	const VideoServiceBase = __webpack_require__(181);
-
-
-	class VimeoService extends VideoServiceBase {
-
-	  getDefaultOptions() {
-	    return { width: 500, height: 281 };
-	  }
-
-	  extractVideoID(reference) {
-	    let match = reference.match(/https?:\/\/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/);
-	    return match && typeof match[3] === "string" ? match[3] : reference;
-	  }
-
-	  getVideoUrl(videoID) {
-	    let escapedVideoID = this.env.md.utils.escapeHtml(videoID);
-	    return `//player.vimeo.com/video/${escapedVideoID}`;
-	  }
-
-	}
-
-
-	module.exports = VimeoService;
-
-
-/***/ }),
-/* 183 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
-
-	"use strict";
-
-	const VideoServiceBase = __webpack_require__(181);
-
-
-	class VineService extends VideoServiceBase {
-
-	  getDefaultOptions() {
-	    return { width: 600, height: 600, embed: "simple" };
-	  }
-
-	  extractVideoID(reference) {
-	    let match = reference.match(/^http(?:s?):\/\/(?:www\.)?vine\.co\/v\/([a-zA-Z0-9]{1,13}).*/);
-	    return match && match[1].length === 11 ? match[1] : reference;
-	  }
-
-	  getVideoUrl(videoID) {
-	    let escapedVideoID = this.env.md.utils.escapeHtml(videoID);
-	    let escapedEmbed = this.env.md.utils.escapeHtml(this.options.embed);
-	    return `//vine.co/v/${escapedVideoID}/embed/${escapedEmbed}`;
-	  }
-
-	}
-
-
-	module.exports = VineService;
-
-
-/***/ }),
-/* 184 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
-
-	"use strict";
-
-	const VideoServiceBase = __webpack_require__(181);
-
-
-	class PreziService extends VideoServiceBase {
-
-	  getDefaultOptions() {
-	    return { width: 550, height: 400 };
-	  }
-
-	  extractVideoID(reference) {
-	    let match = reference.match(/^https:\/\/prezi.com\/(.[^/]+)/);
-	    return match ? match[1] : reference;
-	  }
-
-	  getVideoUrl(videoID) {
-	    let escapedVideoID = this.env.md.utils.escapeHtml(videoID);
-	    return "https://prezi.com/embed/" + escapedVideoID
-	        + "/?bgcolor=ffffff&amp;lock_to_path=0&amp;autoplay=0&amp;autohide_ctrls=0&amp;"
-	        + "landing_data=bHVZZmNaNDBIWnNjdEVENDRhZDFNZGNIUE43MHdLNWpsdFJLb2ZHanI5N1lQVHkxSHFxazZ0UUNCRHloSXZROHh3PT0&amp;"
-	        + "landing_sign=1kD6c0N6aYpMUS0wxnQjxzSqZlEB8qNFdxtdjYhwSuI";
-	  }
-
-	}
-
-
-	module.exports = PreziService;
-
-
-/***/ }),
-/* 185 */
-/***/ (function(module, exports) {
-
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
-
-	"use strict";
-
-
-	function renderer(tokens, idx, options, _env) {
-	  let videoToken = tokens[idx];
-
-	  let service = videoToken.info.service;
-	  let videoID = videoToken.info.videoID;
-
-	  return service.getEmbedCode(videoID);
-	}
-
-
-	module.exports = renderer;
-
-
-/***/ }),
-/* 186 */
-/***/ (function(module, exports) {
-
-	// Copyright (c) Rotorz Limited and portions by original markdown-it-video authors
-	// Licensed under the MIT license. See LICENSE file in the project root.
-
-	"use strict";
-
-
-	const SYNTAX_CHARS = "@[]()".split("");
-	const SYNTAX_CODES = SYNTAX_CHARS.map(char => char.charCodeAt(0));
-
-
-	function advanceToSymbol(state, endLine, symbol, pointer) {
-	  let maxPos = null;
-	  let symbolLine = pointer.line;
-	  let symbolIndex = state.src.indexOf(symbol, pointer.pos);
-
-	  if (symbolIndex === -1) return false;
-
-	  maxPos = state.eMarks[pointer.line];
-	  while (symbolIndex >= maxPos) {
-	    ++symbolLine;
-	    maxPos = state.eMarks[symbolLine];
-
-	    if (symbolLine >= endLine) return false;
-	  }
-
-	  pointer.prevPos = pointer.pos;
-	  pointer.pos = symbolIndex;
-	  pointer.line = symbolLine;
-	  return true;
-	}
-
-
-	function tokenizer(state, startLine, endLine, silent) {
-	  let startPos = state.bMarks[startLine] + state.tShift[startLine];
-	  let maxPos = state.eMarks[startLine];
-
-	  let pointer = { line: startLine, pos: startPos };
-
-	  // Block embed must be at start of input or the previous line must be blank.
-	  if (startLine !== 0) {
-	    let prevLineStartPos = state.bMarks[startLine - 1] + state.tShift[startLine - 1];
-	    let prevLineMaxPos = state.eMarks[startLine - 1];
-	    if (prevLineMaxPos > prevLineStartPos) return false;
-	  }
-
-	  // Identify as being a potential block embed.
-	  if (maxPos - startPos < 2) return false;
-	  if (SYNTAX_CODES[0] !== state.src.charCodeAt(pointer.pos++)) return false;
-
-	  // Read service name from within square brackets.
-	  if (SYNTAX_CODES[1] !== state.src.charCodeAt(pointer.pos++)) return false;
-	  if (!advanceToSymbol(state, endLine, "]", pointer)) return false;
-
-	  let serviceName = state.src
-	    .substr(pointer.prevPos, pointer.pos - pointer.prevPos)
-	    .trim()
-	    .toLowerCase();
-
-	  ++pointer.pos;
-
-	  // Lookup service; if unknown, then this is not a known embed!
-	  let service = this.services[serviceName];
-	  if (!service) return false;
-
-	  // Read embed reference from within parenthesis.
-	  if (SYNTAX_CODES[3] !== state.src.charCodeAt(pointer.pos++)) return false;
-	  if (!advanceToSymbol(state, endLine, ")", pointer)) return false;
-
-	  let videoReference = state.src
-	    .substr(pointer.prevPos, pointer.pos - pointer.prevPos)
-	    .trim();
-
-	  ++pointer.pos;
-
-	  // Do not recognize as block element when there is trailing text.
-	  maxPos = state.eMarks[pointer.line];
-	  let trailingText = state.src
-	    .substr(pointer.pos, maxPos - pointer.pos)
-	    .trim();
-	  if (trailingText !== "") return false;
-
-	  // Block embed must be at end of input or the next line must be blank.
-	  if (endLine !== pointer.line + 1) {
-	    let nextLineStartPos = state.bMarks[pointer.line + 1] + state.tShift[pointer.line + 1];
-	    let nextLineMaxPos = state.eMarks[pointer.line + 1];
-	    if (nextLineMaxPos > nextLineStartPos) return false;
-	  }
-
-	  if (pointer.line >= endLine) return false;
-
-	  if (!silent) {
-	    let token = state.push("video", "div", 0);
-	    token.markup = state.src.slice(startPos, pointer.pos);
-	    token.block = true;
-	    token.info = {
-	      serviceName: serviceName,
-	      service: service,
-	      videoReference: videoReference,
-	      videoID: service.extractVideoID(videoReference)
-	    };
-	    token.map = [ startLine, pointer.line + 1 ];
-
-	    state.line = pointer.line + 1;
-	  }
-
-	  return true;
-	}
-
-
-	module.exports = tokenizer;
+	  theMd.renderer.rules.video = tokenizeVideo(theMd, theOptions);
+	  theMd.inline.ruler.before('emphasis', 'video', videoEmbed(theMd, theOptions));
+	};
 
 
 /***/ })
