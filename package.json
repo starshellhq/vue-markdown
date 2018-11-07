@@ -41,6 +41,7 @@
     "webpack": "^1.13.0"
   },
   "dependencies": {
+    "@iktakahiro/markdown-it-katex": "^3.0.4",
     "highlight.js": "^9.12.0",
     "markdown-it": "^6.0.1",
     "markdown-it-abbr": "^1.0.3",
