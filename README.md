@@ -23,13 +23,10 @@ Supported Markdown Syntax:
 * [x] subscript
 * [x] footnote
 * [x] insert
-* [x] *katex
 * [x] emoji
 * [x] mark
 
 `*SyntaxHighlighter` work with [Prism](http://prismjs.com) recommend
-
-`*katex` need add [katex css](https://unpkg.com/katex/dist/katex.min.css).
 
 # Example
 
